@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine, select, delete, Table, MetaData, desc, func
+from sqlalchemy import create_engine, select, delete, Table, MetaData, desc, func, inspect
 import sqlalchemy
 import json
 
@@ -101,20 +101,40 @@ class MetricETemp:
       
       if (len(aggReq) > 0):
           self.hourAggregate(device, aggReq)
+          self.dayAggregate(device, aggReq)
       
       
   def hourAggregate(self, device, aggRequired):
       todoList = []
       for t in aggRequired:
           ts = pd.Timestamp(t.year, t.month, t.day, t.hour)
-          todoList.append({"Hour": ts})
+          todoList.append({
+              "start":  ts,
+              "end":    ts + pd.Timedelta(hours=1)
+              })
       todoDf = pd.DataFrame(todoList).drop_duplicates()
       
+      self.aggregate(device, todoDf, self.MetricStatsHourETemp, 'MetricStatsHourETemp')
+      
+      
+  def dayAggregate(self, device, aggRequired):
+      todoList = []
+      for t in aggRequired:
+          ts = pd.Timestamp(t.year, t.month, t.day)
+          todoList.append({
+              "start":  ts,
+              "end":    ts + pd.Timedelta(days=1)
+              })
+      todoDf = pd.DataFrame(todoList).drop_duplicates()
+      
+      self.aggregate(device, todoDf, self.MetricStatsDayETemp, 'MetricStatsDayETemp')    
+  
+  def aggregate(self, device, todoDf, table, tableName):    
       conn = self.dbEng.connect()
       nRows=[]
       for index, row in todoDf.iterrows():
-          ts = row["Hour"]
-          ets = ts + pd.Timedelta(hours=1)
+          start = row["start"]
+          end   = row["end"] 
           stmt = select(
             func.avg(self.MetricStatsETemp.c.Sample),
             func.min(self.MetricStatsETemp.c.Min),
@@ -122,9 +142,9 @@ class MetricETemp:
           ).where(
               self.MetricStatsETemp.c.Device == device
           ).where(
-              self.MetricStatsETemp.c.SampleTime >= ts.strftime('%Y-%m-%d %X')
+              self.MetricStatsETemp.c.SampleTime >= start.strftime('%Y-%m-%d %X')
           ).where(
-              self.MetricStatsETemp.c.SampleTime < ets.strftime('%Y-%m-%d %X')
+              self.MetricStatsETemp.c.SampleTime < end.strftime('%Y-%m-%d %X')
           )
           
           res = conn.execute(stmt)
@@ -132,11 +152,11 @@ class MetricETemp:
           (s, mi, ma) = rows[0]
           nRow = {
               "LoadTime":   pd.Timestamp.utcnow(),
-              "SampleTime": ts,
-              "Year":       ts.year,
-              "Month":      ts.month,
-              "Day":        ts.day,
-              "Hour":       ts.hour,
+              "SampleTime": start,
+              "Year":       start.year,
+              "Month":      start.month,
+              "Day":        start.day,
+              "Hour":       start.hour,
               "Device":     device,
               "Sensor":     "AHT10",
               "Sample":     s,
@@ -146,20 +166,20 @@ class MetricETemp:
           nRows.append(nRow)
           
           stmt = delete(
-              self.MetricStatsHourETemp
+              table
               ).where(
-                   self.MetricStatsHourETemp.c.Device == device
+                   table.c.Device == device
               ).where(
-                   self.MetricStatsHourETemp.c.Sensor == "AHT10"
+                   table.c.Sensor == "AHT10"
               ).where(
-                  self.MetricStatsHourETemp.c.SampleTime == ts.strftime('%Y-%m-%d %X')
+                  table.c.SampleTime == start.strftime('%Y-%m-%d %X')
               )
           res = conn.execute(stmt)
           conn.commit() 
           
       if len(nRows) > 0:
           df = pd.DataFrame(nRows)
-          df.to_sql('MetricStatsHourETemp', con=self.dbEng, if_exists='append', index=False)  
+          df.to_sql(tableName, con=self.dbEng, if_exists='append', index=False)  
           
       print(todoDf)
     
