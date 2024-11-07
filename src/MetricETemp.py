@@ -203,3 +203,37 @@ class MetricETemp:
         ts = rows[0][0]
         conn.close()
         return ts
+    
+  def purge(self, baseDays = 28, hourDays = 365, dayDays = 365*5):
+      conn = self.dbEng.connect()
+      
+      #Base
+      ts = pd.Timestamp.utcnow() - pd.Timedelta(days=baseDays)
+      stmt = delete(
+           self.MetricStatsETemp
+          ).where(
+              self.MetricStatsETemp.c.SampleTime < ts.strftime('%Y-%m-%d %X')
+          )
+      conn.execute(stmt)
+      
+      #Hour
+      ts = pd.Timestamp.utcnow() - pd.Timedelta(days=hourDays)
+      stmt = delete(
+           self.MetricStatsHourETemp
+          ).where(
+              self.MetricStatsHourETemp.c.SampleTime < ts.strftime('%Y-%m-%d %X')
+          )
+      conn.execute(stmt)
+      
+      #Days
+      ts = pd.Timestamp.utcnow() - pd.Timedelta(days=dayDays)
+      stmt = delete(
+           self.MetricStatsDayETemp
+          ).where(
+              self.MetricStatsDayETemp.c.SampleTime < ts.strftime('%Y-%m-%d %X')
+          )
+      conn.execute(stmt)
+      conn.commit()
+          
+        
+      

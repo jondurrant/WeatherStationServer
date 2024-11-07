@@ -28,3 +28,5 @@ if __name__ == "__main__":
     mTemp = MetricETemp(engine)
 
     mTemp.processDevice("FAKE1")
+    
+    mTemp.purge()
