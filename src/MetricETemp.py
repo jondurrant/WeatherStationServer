@@ -62,7 +62,7 @@ class MetricETemp:
           "SELECT * FROM DeviceSubmitRaw " +
           "WHERE DeviceId=\""+ device + "\" " +
           "AND  `Timestamp` > ('%s')" + 
-          ";"
+          "ORDER BY `Timestamp` LIMIT 120;"
           )%(ts.strftime('%Y-%m-%d %X'))
 
       df = pd.read_sql(sqlStm, conn)
@@ -99,9 +99,11 @@ class MetricETemp:
       metricDF.to_sql('MetricStatsETemp', con=self.dbEng, if_exists='append', index=False)
       conn.close()
       
-      if (len(aggReq) > 0):
+      count = len(aggReq)
+      if (count > 0):
           self.hourAggregate(device, aggReq)
           self.dayAggregate(device, aggReq)
+      return count
       
       
   def hourAggregate(self, device, aggRequired):
@@ -181,7 +183,7 @@ class MetricETemp:
           df = pd.DataFrame(nRows)
           df.to_sql(tableName, con=self.dbEng, if_exists='append', index=False)  
           
-      print(todoDf)
+      #print(todoDf)
     
       return None
       

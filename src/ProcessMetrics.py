@@ -26,7 +26,13 @@ if __name__ == "__main__":
     engine = create_engine(connectString)
     
     mTemp = MetricETemp(engine)
+    
+    
 
-    mTemp.processDevice("FAKE1")
+    count = 10
+    while count > 0:
+        print(mTemp.mostRecentTS("Test1"))
+        count = mTemp.processDevice("Test1")
+        print("Processed %d"%count)
     
     mTemp.purge()

@@ -6,7 +6,7 @@ import pandas as pd
 import random
 from sqlalchemy import create_engine, select, delete, Table, MetaData
 
-now = datetime.utcnow()
+now = pd.Timestamp.utcnow()
 j = {
         "header": {
             "type": "WeatherStation", 
@@ -22,7 +22,14 @@ j = {
             "id": "Test1", 
             "source": "VBUS", 
             "volts": 4.42068, 
+            "min_volts": 4.63096,
+            "max_volts": 4.68896,
             "celcius": 23.8615},
+            "min_celcius": 24.7978, 
+            "max_celcius": 25.8095,
+            "vbus_sec": 106.0, 
+            "vsys_sec": 30.0
+            },
         "aht10": {
             "error": False, 
             "celcius": 19.7811, 
@@ -94,14 +101,22 @@ engine = create_engine(connectString)
 
 
 
-j["header"]["timestamp"]["year"]=2024
-j["header"]["timestamp"]["month"]=10
+ts = pd.Timestamp.utcnow() - pd.Timedelta(days=31)
+j["header"]["timestamp"]["year"]=ts.year
+j["header"]["timestamp"]["month"]=ts.month
 
-for day in range(1,31):
+#Months worth of data
+lastDay = 31
+if ts.month == 2:
+    lastDay = 28
+if ts.month in (9, 4, 6, 11):
+    lastDay = 30
+for day in range(1,lastDay):
     for hour in range(0,23):
         rows=[]
         for minute in range(0,59, 2):
-            ts = pd.Timestamp(2024,10,day, hour, minute, 0)
+            ts = pd.Timestamp(ts.year,ts.month,day, hour, minute, 0)
+            j["header"]["timestamp"]["day"]=day
             j["header"]["timestamp"]["hour"]=hour
             j["header"]["timestamp"]["min"]=minute   
             
@@ -130,5 +145,50 @@ for day in range(1,31):
                 })
             
         df = pd.DataFrame(rows)
-        df.to_sql('DeviceSubmitRaw', con=engine, if_exists='append', index=False)     
+        df.to_sql('DeviceSubmitRaw', con=engine, if_exists='append', index=False)    
+        
+#Back post data on 1st of current month
+ts = pd.Timestamp.utcnow()
+day = 1
+j["header"]["timestamp"]["year"]=ts.year
+j["header"]["timestamp"]["month"]=ts.month
+j["header"]["timestamp"]["day"]=day
+for hour in range(0,23):
+    rows=[]
+    for minute in range(0,59, 2):
+        ts = pd.Timestamp(ts.year,ts.month,day, hour, minute, 0)
+        j["header"]["timestamp"]["day"]=day
+        j["header"]["timestamp"]["hour"]=hour
+        j["header"]["timestamp"]["min"]=minute   
+        
+        j["aht10"]["celcius"] = random.uniform(-10, 25)
+        j["aht10"]["min_celcius"] = min(
+            random.uniform(-10, 25),
+             j["aht10"]["celcius"])
+        j["aht10"]["max_celcius"] = max(
+            random.uniform(-10, 25),
+             j["aht10"]["celcius"]) 
+                
+        j["aht10"]["humidity"] = random.uniform(10, 90)
+        j["aht10"]["min_humidity"] = min(
+            random.uniform(10, 90),
+             j["aht10"]["humidity"])
+        j["aht10"]["max_humidity"] = max(
+            random.uniform(10, 90),
+             j["aht10"]["humidity"]) 
+        
+        if minute >= 30 and minute < 40:
+            ts = pd.Timestamp(ts.year,ts.month,day, hour, minute + 10, 30)
+        rows.append({
+            "Timestamp": ts,
+            "DeviceID": "Test1",
+            "Type":     j["header"].get("type", "UNKNOWN"),
+            "Version":  j["header"].get("version", 0),
+            "Payload":  json.dumps(j)
+            })
+        
+    df = pd.DataFrame(rows)
+    df.to_sql('DeviceSubmitRaw', con=engine, if_exists='append', index=False)    
+        
+
             

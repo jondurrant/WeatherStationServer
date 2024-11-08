@@ -22,7 +22,7 @@ newHeaders = {'Content-type': 'application/json', 'Accept': 'text/plain'}
 now = datetime.utcnow()
 j = {
         "header": {
-            "type": "WeatherStationPayload", 
+            "type": "WeatherStation", 
             "version": 1.0, 
             "timestamp": {
                 "year": now.year, 
