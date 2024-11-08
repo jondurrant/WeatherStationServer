@@ -187,7 +187,7 @@ class MetricETemp:
     
       return None
       
-  def mostRecentTS(self, device):
+  def mostRecentTS(self, device): 
         stmt = select(
             self.MetricStatsETemp,
             self.MetricStatsETemp.c.LoadTime

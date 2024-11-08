@@ -21,28 +21,39 @@ j = {
         "pico": {
             "id": "Test1", 
             "source": "VBUS", 
-            "volts": 4.42068, 
-            "min_volts": 4.63096,
-            "max_volts": 4.68896,
-            "celcius": 23.8615},
-            "min_celcius": 24.7978, 
-            "max_celcius": 25.8095,
+            "volts": {
+                "current": 4.42068, 
+                "min": 4.63096,
+                "max": 4.68896
+                },
+            "celcius": {
+                "current": 23.8615,
+                "min": 24.7978, 
+                "max": 25.8095
+                },
             "vbus_sec": 106.0, 
             "vsys_sec": 30.0
             },
         "aht10": {
             "error": False, 
-            "celcius": 19.7811, 
-            "max_celcius": 19.8552, 
-            "min_celcius": 19.7775, 
-            "humidity": 67.9592, 
-            "max_humidity": 68.5895, 
-            "min_humidity": 67.5763}, 
+            "celcius": {
+                "current": 19.7811, 
+                "max": 19.8552, 
+                "min": 19.7775
+                }, 
+            "humidity": {
+                "current": 67.9592, 
+                "max": 68.5895, 
+                "min": 67.5763
+                }
+            }, 
         "anem": {
-            "kmph": 0.0, 
-            "max_kmph": 0.0, 
-            "min_kmph": 0.0, 
-            "gust_kmph": 0.0},  
+            "kmph": {
+                "current": 0.0, 
+                "max": 0.0, 
+                "min": 0.0
+                },
+            },  
         "rain": {
             "cumlative_mm": 0.0, 
             "max_mmps": 0.0, 
@@ -57,15 +68,23 @@ j = {
                 "hour": 8, 
                 "min": 40, 
                 "sec": 32}, 
-            "celcius": 20.25, 
-            "bat_volts": 0.0201416}, 
+            "celcius": {
+                "current": 19.7811, 
+                "max": 19.8552, 
+                "min": 19.7775
+                }, 
+            "bat_volts": {
+                "current": 0.0201416,
+                "max": 1.0,
+                "min": 0.0}
+            }, 
         "sen0500": {
             "error": False, 
             "celcius": {
                 "current": 20.0909, 
                 "min": 19.9921, 
                 "max": 20.1764}, 
-            "humid": {
+            "humidity": {
                 "current": 66.2659, 
                 "min": 66.2659, 
                 "max": 66.7908}, 
@@ -82,10 +101,165 @@ j = {
                 "min": 0.0, 
                 "max": 0.0}}, 
         "vain": {
-            "degrees": 270.0,
-            "max_degrees": 270.0, 
-            "min_degrees": 270.0}
+            "current": 270.0,
+            "max": 270.0, 
+            "min": 270.0}
         }
+
+
+vbus_sec = 0
+vsys_sec = 0
+rain_mm = 0
+
+def randDataReset():
+    global vbus_sec 
+    vbus_sec = 0
+    global vsys_sec 
+    vsys_sec = 0
+    global rain_mm 
+    rain_mm = 0
+
+
+def randData(ts):
+    c = random.uniform(-10, 25)
+    h = max(random.uniform(-10, 25), c)
+    l = min(random.uniform(-10, 35), c) 
+    j["aht10"]["celcius"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+                
+    c = random.uniform(10, 90)
+    h = max(random.uniform(10, 90), c)
+    l = min(random.uniform(10, 90), c) 
+    j["aht10"]["humidity"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                } 
+    
+    c = random.uniform(10, 50)
+    h = max(random.uniform(10, 50), c)
+    l = min(random.uniform(10, 50), c) 
+    j["pico"]["celcius"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+    
+    c = random.uniform(2.8, 5.5)
+    h = max(random.uniform(2.7, 5.5), c)
+    l = min(random.uniform(2.8, 5.5), c) 
+    j["pico"]["volts"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+    if c < 4.0:
+        j["pico"]["source"] = "VSYS"
+        global vsys_sec
+        vsys_sec = vsys_sec + 120
+    else:
+        j["pico"]["source"] = "VBUS"
+        global vbus_sec
+        vbus_sec = vbus_sec + 120
+    
+    j["pico"]["vbus_sec"] = vbus_sec
+    j["pico"]["vsys_sec"] = vsys_sec    
+    
+
+    c = random.uniform(0.0, 80.0)
+    h = max(random.uniform(0.0, 80.0), c)
+    l = min(random.uniform(0.0, 80.0), c) 
+    j["anem"]["kmph"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+    
+    
+    c = random.uniform(-5.0, 2.0)
+    h = max(random.uniform(0.0, 2.0),c)
+    l = min(random.uniform(0.0, 2.0),c)
+    if c < 0.0:
+        c = 0.0
+    global rain_mm
+    rain_mm = + rain_mm + c
+    j["rain"]: {
+            "cumlative_mm": rain_mm, 
+            "max_mmps": h, 
+            "min_mmps": l, 
+            "period_mm": c, 
+            "since_sec": 120}
+    if c > 0.0:
+         j["rain"]["since_sec"] = 0
+         
+    c = random.uniform(0.0, 40.0)
+    h = max(random.uniform(0.0, 40.0), c)
+    l = min(random.uniform(0.0, 40.0), c)      
+    j["rtc"] = {
+            "timestamp": {
+                "year":  ts.year, 
+                "month": ts.month, 
+                "day":   ts.day, 
+                "hour":  ts.hour, 
+                "min":   ts.minute, 
+                "sec": 11}, 
+            "celcius": {
+                "current": c, 
+                "max": h, 
+                "min": l
+                },      
+            "bat_volts": {}}
+    c = random.uniform(0.0, 3.0)
+    h = max(random.uniform(0.0, 3.0), c)
+    l = min(random.uniform(0.0, 3.0), c) 
+    j["rtc"]["bat_volts"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+
+    c = random.uniform(0.0, 359)
+    h = max(random.uniform(0.0, 359), c)
+    l = min(random.uniform(0.0, 359), c) 
+    j["vain"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+
+    j["sen0500"]["celcius"] =  j["aht10"]["celcius"]
+    j["sen0500"]["humidity"] = j["aht10"]["humidity"]
+
+    c = random.uniform(750, 1040)
+    h = max(random.uniform(750, 1040), c)
+    l = min(random.uniform(750, 1040), c) 
+    j["sen0500"]["hPa"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+    
+    c = random.uniform(0.0, 100.0)
+    h = max(random.uniform(0.0, 100.0), c)
+    l = min(random.uniform(0.0, 100.0), c) 
+    j["sen0500"]["uv"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+            
+    c = random.uniform(0.0, 100.0)
+    h = max(random.uniform(0.0, 100.0), c)
+    l = min(random.uniform(0.0, 100.0), c) 
+    j["sen0500"]["lumi"] = {
+                "current": c, 
+                "max": h, 
+                "min": l
+                }
+
 
 
 dbHost=os.environ.get("DB_HOST", "localhost")
@@ -111,6 +285,9 @@ if ts.month == 2:
     lastDay = 28
 if ts.month in (9, 4, 6, 11):
     lastDay = 30
+
+lastDay = 1    
+randDataReset()
 for day in range(1,lastDay):
     for hour in range(0,23):
         rows=[]
@@ -118,24 +295,10 @@ for day in range(1,lastDay):
             ts = pd.Timestamp(ts.year,ts.month,day, hour, minute, 0)
             j["header"]["timestamp"]["day"]=day
             j["header"]["timestamp"]["hour"]=hour
-            j["header"]["timestamp"]["min"]=minute   
+            j["header"]["timestamp"]["min"]=minute         
             
-            j["aht10"]["celcius"] = random.uniform(-10, 25)
-            j["aht10"]["min_celcius"] = min(
-                random.uniform(-10, 25),
-                 j["aht10"]["celcius"])
-            j["aht10"]["max_celcius"] = max(
-                random.uniform(-10, 25),
-                 j["aht10"]["celcius"]) 
-                    
-            j["aht10"]["humidity"] = random.uniform(10, 90)
-            j["aht10"]["min_humidity"] = min(
-                random.uniform(10, 90),
-                 j["aht10"]["humidity"])
-            j["aht10"]["max_humidity"] = max(
-                random.uniform(10, 90),
-                 j["aht10"]["humidity"]) 
-            
+            randData(ts)
+                   
             rows.append({
                 "Timestamp": ts,
                 "DeviceID": "Test1",
@@ -145,7 +308,8 @@ for day in range(1,lastDay):
                 })
             
         df = pd.DataFrame(rows)
-        df.to_sql('DeviceSubmitRaw', con=engine, if_exists='append', index=False)    
+        df.to_sql('DeviceSubmitRaw', con=engine, if_exists='append', index=False) 
+    randDataReset()   
         
 #Back post data on 1st of current month
 ts = pd.Timestamp.utcnow()
@@ -153,6 +317,7 @@ day = 1
 j["header"]["timestamp"]["year"]=ts.year
 j["header"]["timestamp"]["month"]=ts.month
 j["header"]["timestamp"]["day"]=day
+randDataReset()
 for hour in range(0,23):
     rows=[]
     for minute in range(0,59, 2):
@@ -161,21 +326,7 @@ for hour in range(0,23):
         j["header"]["timestamp"]["hour"]=hour
         j["header"]["timestamp"]["min"]=minute   
         
-        j["aht10"]["celcius"] = random.uniform(-10, 25)
-        j["aht10"]["min_celcius"] = min(
-            random.uniform(-10, 25),
-             j["aht10"]["celcius"])
-        j["aht10"]["max_celcius"] = max(
-            random.uniform(-10, 25),
-             j["aht10"]["celcius"]) 
-                
-        j["aht10"]["humidity"] = random.uniform(10, 90)
-        j["aht10"]["min_humidity"] = min(
-            random.uniform(10, 90),
-             j["aht10"]["humidity"])
-        j["aht10"]["max_humidity"] = max(
-            random.uniform(10, 90),
-             j["aht10"]["humidity"]) 
+        randData(ts)
         
         if minute >= 30 and minute < 40:
             ts = pd.Timestamp(ts.year,ts.month,day, hour, minute + 10, 30)
