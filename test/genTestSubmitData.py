@@ -21,7 +21,12 @@ j = {
         "pico": {
             "id": "Test1", 
             "source": "VBUS", 
-            "volts": {
+            "charge_volts": {
+                "current": 4.42068, 
+                "min": 4.63096,
+                "max": 4.68896
+                },
+            "bat_volts": {
                 "current": 4.42068, 
                 "min": 4.63096,
                 "max": 4.68896
@@ -151,19 +156,26 @@ def randData(ts):
     c = random.uniform(2.8, 5.5)
     h = max(random.uniform(2.7, 5.5), c)
     l = min(random.uniform(2.8, 5.5), c) 
-    j["pico"]["volts"] = {
-                "current": c, 
-                "max": h, 
-                "min": l
-                }
     if c < 4.0:
         j["pico"]["source"] = "VSYS"
         global vsys_sec
         vsys_sec = vsys_sec + 120
+        j["pico"]["bat_volts"] = {
+            "current": c, 
+            "max": h, 
+            "min": l
+            }
+        j["pico"]["charge_volts"] = None
     else:
         j["pico"]["source"] = "VBUS"
         global vbus_sec
         vbus_sec = vbus_sec + 120
+        j["pico"]["charge_volts"] = {
+            "current": c, 
+            "max": h, 
+            "min": l
+            }
+        j["pico"]["bat_volts"] = None
     
     j["pico"]["vbus_sec"] = vbus_sec
     j["pico"]["vsys_sec"] = vsys_sec    

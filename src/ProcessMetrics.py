@@ -14,7 +14,7 @@ from MetricSample import MetricSample
 
 
 
-def picoGetSample(dic):
+def picoGetTemp(dic):
     return dic.get("pico", {}).get("celcius", None)
 
 def ahtGetTemp(dic):
@@ -22,6 +22,38 @@ def ahtGetTemp(dic):
 
 def senGetTemp(dic):
     return dic.get("sen0500", {}).get("celcius", None)
+
+def rtcGetTemp(dic):
+    return dic.get("rtc", {}).get("celcius", None)
+
+def getVain(dic):
+    return dic.get("vain", None)
+
+def ahtGetHumi(dic):
+    return dic.get("aht10", {}).get("humidity", None)
+
+def senGetHumi(dic):
+    return dic.get("sen0500", {}).get("humidity", None)
+
+def senGetPressure(dic):
+    return dic.get("sen0500", {}).get("hPa", None)
+
+def senGetUv(dic):
+    return dic.get("sen0500", {}).get("uv", None)
+
+def senGetLumi(dic):
+    return dic.get("sen0500", {}).get("hPa", None)
+
+
+def rtcGetBat(dic):
+    return dic.get("rtc", {}).get("bat_volts", None)
+
+def picoGetBat(dic):
+    return dic.get("pico", {}).get("bat_volts", None)
+
+def picoGetChargeV(dic):
+    return dic.get("pico", {}).get("charge_volts", None)
+
 
 if __name__ == "__main__":
    
@@ -44,17 +76,99 @@ if __name__ == "__main__":
     #mTemp.purge()
     
     
+    #Temp Sensors
     picoTemp = MetricSample("ITemp", engine)
     print(picoTemp.mostRecentTS("Test1", "pico"))
-    count = picoTemp.processDevice("Test1", "pico", picoGetSample)
-    print("Processed %d"%count)
+    count = picoTemp.processDevice("Test1", "pico", picoGetTemp)
+    print("picoTemp Processed %d"%count)
+    
+    rtcTemp = MetricSample("ITemp", engine)
+    print(rtcTemp.mostRecentTS("Test1", "rtc"))
+    count = picoTemp.processDevice("Test1", "rtc", rtcGetTemp)
+    print("rtcTemp Processed %d"%count)
     
     ahtTemp = MetricSample("ETemp", engine)
     print(ahtTemp.mostRecentTS("Test1", "aht10"))
     count = ahtTemp.processDevice("Test1", "aht10", ahtGetTemp)
-    print("Processed %d"%count)
+    print("ahtTemp Processed %d"%count)
     
     senTemp = MetricSample("ETemp", engine)
     print(senTemp.mostRecentTS("Test1", "sen0500"))
     count = senTemp.processDevice("Test1", "sen0500", senGetTemp)
-    print("Processed %d"%count)
+    print("senTemp Processed %d"%count)
+    
+    senTemp.purge()
+    picoTemp.purge()
+    
+    #Vain
+    vain = MetricSample("Vain", engine)
+    print(vain.mostRecentTS("Test1", "vain"))
+    count = vain.processDevice("Test1", "vain", getVain)
+    print("vain Processed %d"%count)
+    vain.purge()
+    
+    #Humidity
+    humid = MetricSample("Humidity", engine)
+    print(humid.mostRecentTS("Test1", "sen0500"))
+    count = humid.processDevice("Test1", "sen0500", senGetHumi)
+    print("humid sen0500 Processed %d"%count)
+    
+    print(humid.mostRecentTS("Test1", "aht10"))
+    count = humid.processDevice("Test1", "aht10", ahtGetHumi)
+    print("humid aht10 Processed %d"%count)
+    
+    humid.purge()
+    
+    
+    #Pressure
+    pressure = MetricSample("Pressure", engine)
+    print(pressure.mostRecentTS("Test1", "sen0500"))
+    count = pressure.processDevice("Test1", "sen0500", senGetPressure)
+    print("pressure sen0500 Processed %d"%count)
+    
+    pressure.purge()
+    
+    
+    #Light and UV
+    uv = MetricSample("UV", engine)
+    print(uv.mostRecentTS("Test1", "sen0500"))
+    count = uv.processDevice("Test1", "sen0500", senGetUv)
+    print("UV sen0500 Processed %d"%count)
+    
+    lumi = MetricSample("Lumi", engine)
+    print(lumi.mostRecentTS("Test1", "sen0500"))
+    count = lumi.processDevice("Test1", "sen0500", senGetLumi)
+    print("Lumi sen0500 Processed %d"%count)
+    
+    uv.purge()
+    lumi.purge()
+    
+    
+    #Battery
+    bat = MetricSample("Battery", engine)
+    print(bat.mostRecentTS("Test1", "pico"))
+    count = bat.processDevice("Test1", "pico", picoGetBat)
+    print("Bat Pico Processed %d"%count)
+    
+    print(bat.mostRecentTS("Test1", "rtc"))
+    count = bat.processDevice("Test1", "rtc", rtcGetBat)
+    print("Bat RTC Processed %d"%count)
+    
+    bat.purge()
+    
+    #ChargeVolts
+    volts = MetricSample("ChargeV", engine)
+    print(volts.mostRecentTS("Test1", "pico"))
+    count = volts.processDevice("Test1", "pico", picoGetChargeV)
+    print("Charge Pico Processed %d"%count)
+    
+    volts.purge()
+    
+    
+    
+    
+    
+    
+    
+    
+    
