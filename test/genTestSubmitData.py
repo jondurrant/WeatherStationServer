@@ -60,9 +60,12 @@ j = {
                 },
             },  
         "rain": {
+            "mmps": {
+                "current": 0.0, 
+                "max": 0.0, 
+                "min": 0.0
+                },
             "cumlative_mm": 0.0, 
-            "max_mmps": 0.0, 
-            "min_mmps": 0.0, 
             "period_mm": 0.0, 
             "since_sec": 121.353}, 
         "rtc": {
@@ -191,17 +194,20 @@ def randData(ts):
                 }
     
     
-    c = random.uniform(-5.0, 2.0)
-    h = max(random.uniform(0.0, 2.0),c)
-    l = min(random.uniform(0.0, 2.0),c)
+    c = random.uniform(-1.0, 2.0)
     if c < 0.0:
         c = 0.0
+    h = max(random.uniform(0.0, 2.0),c)
+    l = min(random.uniform(0.0, 2.0),c)
     global rain_mm
     rain_mm = + rain_mm + c
-    j["rain"]: {
+    j["rain"]= {
+            "mmps": {
+                "current":  c, 
+                "max":      h, 
+                "min":      l
+                },
             "cumlative_mm": rain_mm, 
-            "max_mmps": h, 
-            "min_mmps": l, 
             "period_mm": c, 
             "since_sec": 120}
     if c > 0.0:

@@ -3,13 +3,12 @@ from sqlalchemy import create_engine, select, delete, Table, MetaData, desc, fun
 import sqlalchemy
 import json
 
-class MetricSample:
-    def __init__(self, metric, dbEng):
-        self.metric = metric
-        self.dbEng = dbEng
-        self.buildTables()
-        
-    
+from MetricSample import MetricSample
+
+def _default_get_rain_cumlative(dic):
+    return dic.get("rain", None)
+
+class MetricsRainCumlative(MetricSample):
     def buildTables(self):
         self.metadata=MetaData()
         
@@ -22,9 +21,8 @@ class MetricSample:
             sqlalchemy.Column('SampleTime', sqlalchemy.DateTime(), primary_key=True),
             sqlalchemy.Column('Device',     sqlalchemy.String(length=40), primary_key=True),
             sqlalchemy.Column('Sensor',     sqlalchemy.String(length=40), primary_key=True),
-            sqlalchemy.Column('Sample',     sqlalchemy.Float()),
-            sqlalchemy.Column('Min',        sqlalchemy.Float()),
-            sqlalchemy.Column('Max',        sqlalchemy.Float()),
+            sqlalchemy.Column('CumlativeMM',sqlalchemy.Float()),
+            sqlalchemy.Column('SinceSec',   sqlalchemy.Float())
             )
         
         self.hourTable = {
@@ -40,9 +38,10 @@ class MetricSample:
             sqlalchemy.Column('Hour',       sqlalchemy.Integer()),
             sqlalchemy.Column('Device',     sqlalchemy.String(length=40)),
             sqlalchemy.Column('Sensor',     sqlalchemy.String(length=40)),
-            sqlalchemy.Column('Sample',     sqlalchemy.Float()),
-            sqlalchemy.Column('Min',        sqlalchemy.Float()),
-            sqlalchemy.Column('Max',        sqlalchemy.Float()),
+            sqlalchemy.Column('CumlativeMM',sqlalchemy.Float()),
+            sqlalchemy.Column('SinceSec',   sqlalchemy.Float()),
+            sqlalchemy.Column('MaxSec',     sqlalchemy.Float()),
+            sqlalchemy.Column('MinSec',     sqlalchemy.Float())
             )
         
         self.dayTable = {
@@ -58,66 +57,14 @@ class MetricSample:
             sqlalchemy.Column('Hour',       sqlalchemy.Integer()),
             sqlalchemy.Column('Device',     sqlalchemy.String(length=40)),
             sqlalchemy.Column('Sensor',     sqlalchemy.String(length=40)),
-            sqlalchemy.Column('Sample',     sqlalchemy.Float()),
-            sqlalchemy.Column('Min',        sqlalchemy.Float()),
-            sqlalchemy.Column('Max',        sqlalchemy.Float()),
+            sqlalchemy.Column('CumlativeMM',sqlalchemy.Float()),
+            sqlalchemy.Column('SinceSec',   sqlalchemy.Float()),
+            sqlalchemy.Column('MaxSec',     sqlalchemy.Float()),
+            sqlalchemy.Column('MinSec',     sqlalchemy.Float())
             )
         self.metadata.create_all(self.dbEng)
         
-    def mostRecentTS(self, device, sensor): 
-        stmt = select(
-            self.sampleTable["table"],
-            self.sampleTable["table"].c.LoadTime
-          ).where(
-              self.sampleTable["table"].c.Device == device
-          ).where(
-              self.sampleTable["table"].c.Sensor == sensor
-          ).order_by(
-              desc(self.sampleTable["table"].c.LoadTime)
-          ).limit(1)
-        conn = self.dbEng.connect()
-        res = conn.execute(stmt)
-        rows = res.all()
-        count = len(rows)
-        if (count == 0):
-            return None
-        ts = rows[0][0]
-        conn.close()
-        return ts
-    
-    def purge(self, baseDays = 28, hourDays = 365, dayDays = 365*5):
-        conn = self.dbEng.connect()
-        
-        #Base
-        ts = pd.Timestamp.utcnow() - pd.Timedelta(days=baseDays)
-        stmt = delete(
-             self.sampleTable["table"]
-            ).where(
-                self.sampleTable["table"].c.SampleTime < ts.strftime('%Y-%m-%d %X')
-            )
-        conn.execute(stmt)
-        
-        #Hour
-        ts = pd.Timestamp.utcnow() - pd.Timedelta(days=hourDays)
-        stmt = delete(
-             self.hourTable["table"]
-            ).where(
-                self.hourTable["table"].c.SampleTime < ts.strftime('%Y-%m-%d %X')
-            )
-        conn.execute(stmt)
-        
-        #Days
-        ts = pd.Timestamp.utcnow() - pd.Timedelta(days=dayDays)
-        stmt = delete(
-             self.dayTable["table"]
-            ).where(
-                self.dayTable["table"].c.SampleTime < ts.strftime('%Y-%m-%d %X')
-            )
-        conn.execute(stmt)
-        conn.commit()
-        
-    
-    def processDevice(self, device, sensor, getSample, ts=None):
+    def processDevice(self, device, sensor, getSample=_default_get_rain_cumlative, ts=None):
         if ts == None:
             ts = self.mostRecentTS(device, sensor)
             if ts == None:
@@ -155,9 +102,8 @@ class MetricSample:
                     "SampleTime": sampleTS,
                     "Device":     device,
                     "Sensor":     sensor,
-                    "Sample":     sample.get("current", None),
-                    "Min":        sample.get("min", None),
-                    "Max":        sample.get("max", None)
+                    "CumlativeMM":  sample.get("cumlative_mm", None),
+                    "SinceSec":     sample.get("since_sec", None)
                     }
                 newRow = pd.DataFrame([metricRow])
                 metricDF = pd.concat([metricDF, newRow])
@@ -171,31 +117,6 @@ class MetricSample:
             self.dayAggregate(device, sensor, aggReq)
         return count
     
-    def hourAggregate(self, device, sensor, aggRequired):
-        todoList = []
-        for t in aggRequired:
-            ts = pd.Timestamp(t.year, t.month, t.day, t.hour)
-            todoList.append({
-                "start":  ts,
-                "end":    ts + pd.Timedelta(hours=1)
-                })
-        todoDf = pd.DataFrame(todoList).drop_duplicates()
-        
-        self.aggregate(device, sensor, todoDf, self.hourTable)
-      
-      
-    def dayAggregate(self, device, sensor, aggRequired):
-        todoList = []
-        for t in aggRequired:
-            ts = pd.Timestamp(t.year, t.month, t.day)
-            todoList.append({
-                "start":  ts,
-                "end":    ts + pd.Timedelta(days=1)
-                })
-        todoDf = pd.DataFrame(todoList).drop_duplicates()
-        
-        self.aggregate(device, sensor, todoDf, self.dayTable)    
-  
     def aggregate(self, device, sensor, todoDf, table):    
         conn = self.dbEng.connect()
         nRows=[]
@@ -203,9 +124,10 @@ class MetricSample:
             start = row["start"]
             end   = row["end"] 
             stmt = select(
-              func.avg(self.sampleTable["table"].c.Sample),
-              func.min(self.sampleTable["table"].c.Min),
-              func.max(self.sampleTable["table"].c.Max)
+              func.max(self.sampleTable["table"].c.CumlativeMM),
+              func.avg(self.sampleTable["table"].c.SinceSec),
+              func.max(self.sampleTable["table"].c.SinceSec),
+              func.min(self.sampleTable["table"].c.SinceSec)
             ).where(
                 self.sampleTable["table"].c.Device == device
             ).where(
@@ -218,7 +140,8 @@ class MetricSample:
             
             res = conn.execute(stmt)
             rows = res.all()
-            (s, mi, ma) = rows[0]
+            (c, a, h, l) = rows[0]
+
             nRow = {
                 "LoadTime":   pd.Timestamp.utcnow(),
                 "SampleTime": start,
@@ -228,9 +151,10 @@ class MetricSample:
                 "Hour":       start.hour,
                 "Device":     device,
                 "Sensor":     sensor,
-                "Sample":     s,
-                "Min":        mi,
-                "Max":        ma
+                "CumlativeMM":  c,
+                "SinceSec":     a,
+                "MaxSec":       h,
+                "MinSec":       l
                 }
             nRows.append(nRow)
             
@@ -253,3 +177,5 @@ class MetricSample:
         #print(todoDf)
         
         return None
+    
+        

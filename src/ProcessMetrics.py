@@ -9,8 +9,11 @@ import pandas as pd
 from sqlalchemy import create_engine, select, delete, Table, MetaData
 import sqlalchemy
 import os
-from MetricETemp import MetricETemp
+#from MetricETemp import MetricETemp
 from MetricSample import MetricSample
+from MetricsChargeCycle import MetricsChargeCycle
+from MetricsRainCumlative import MetricsRainCumlative 
+
 
 
 
@@ -74,6 +77,20 @@ if __name__ == "__main__":
     #    print("Processed %d"%count)
     
     #mTemp.purge()
+    
+    #Rain
+    rainCum = MetricsRainCumlative("RainCumlative", engine)
+    print(rainCum.mostRecentTS("Test1", "rain"))
+    count = rainCum.processDevice("Test1", "rain")
+    print("Rain Cum Processed %d"%count)
+    rainCum.purge()
+    
+    #ChargeCycle
+    chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
+    print(chargeCycle.mostRecentTS("Test1", "pico"))
+    count = chargeCycle.processDevice("Test1", "pico")
+    print("chargeCycle Processed %d"%count)
+    chargeCycle.purge()
     
     
     #Temp Sensors
