@@ -304,7 +304,7 @@ if ts.month == 2:
 if ts.month in (9, 4, 6, 11):
     lastDay = 30
 
-lastDay = 1    
+#lastDay = 1    
 randDataReset()
 for day in range(1,lastDay):
     for hour in range(0,23):

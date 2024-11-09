@@ -102,73 +102,71 @@ def purge(engine):
 
 def processQueue(engine):
     
+    rainCum = MetricsRainCumlative("RainCumlative", engine)
+    chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
+    ITemp = MetricSample("ITemp", engine)
+    ETemp = MetricSample("ETemp", engine)
+    vain = MetricSample("Vain", engine)
+    humid = MetricSample("Humidity", engine)
+    pressure = MetricSample("Pressure", engine)
+    uv = MetricSample("UV", engine)
+    lumi = MetricSample("Lumi", engine)
+    bat = MetricSample("Battery", engine)
+    volts = MetricSample("ChargeV", engine)
+    
     totalCount = 1
     while totalCount != 0:
         totalCount = 0
     
         #Rain
-        rainCum = MetricsRainCumlative("RainCumlative", engine)
         count = rainCum.processDevice("Test1", "rain")
         totalCount = totalCount + count
         
         #ChargeCycle
-        chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
         count = chargeCycle.processDevice("Test1", "pico")
         totalCount = totalCount + count
           
         #Temp Sensors
-        picoTemp = MetricSample("ITemp", engine)
-        count = picoTemp.processDevice("Test1", "pico", picoGetTemp)
+        count = ITemp.processDevice("Test1", "pico", picoGetTemp)
         totalCount = totalCount + count
         
-        rtcTemp = MetricSample("ITemp", engine)
-        count = picoTemp.processDevice("Test1", "rtc", rtcGetTemp)
+        count = ITemp.processDevice("Test1", "rtc", rtcGetTemp)
         totalCount = totalCount + count
         
-        ahtTemp = MetricSample("ETemp", engine)
-        count = ahtTemp.processDevice("Test1", "aht10", ahtGetTemp)
+        count = ETemp.processDevice("Test1", "aht10", ahtGetTemp)
         totalCount = totalCount + count
         
-        senTemp = MetricSample("ETemp", engine)
-        count = senTemp.processDevice("Test1", "sen0500", senGetTemp)
+        count = ETemp.processDevice("Test1", "sen0500", senGetTemp)
         totalCount = totalCount + count
         
         #Vain
-        vain = MetricSample("Vain", engine)
         count = vain.processDevice("Test1", "vain", getVain)
         totalCount = totalCount + count
         
         #Humidity
-        humid = MetricSample("Humidity", engine)
         count = humid.processDevice("Test1", "sen0500", senGetHumi)
         totalCount = totalCount + count
         count = humid.processDevice("Test1", "aht10", ahtGetHumi)
         totalCount = totalCount + count
         
         #Pressure
-        pressure = MetricSample("Pressure", engine)
         count = pressure.processDevice("Test1", "sen0500", senGetPressure)
-        totalCount = totalCount + count
-        
+        totalCount = totalCount + count    
         
         #Light and UV
-        uv = MetricSample("UV", engine)
         count = uv.processDevice("Test1", "sen0500", senGetUv)
         totalCount = totalCount + count
         
-        lumi = MetricSample("Lumi", engine)
         count = lumi.processDevice("Test1", "sen0500", senGetLumi)
         totalCount = totalCount + count  
         
         #Battery
-        bat = MetricSample("Battery", engine)
         count = bat.processDevice("Test1", "pico", picoGetBat)
         totalCount = totalCount + count
         count = bat.processDevice("Test1", "rtc", rtcGetBat)
         totalCount = totalCount + count
         
         #ChargeVolts
-        volts = MetricSample("ChargeV", engine)
         count = volts.processDevice("Test1", "pico", picoGetChargeV)
         totalCount = totalCount + count
         
