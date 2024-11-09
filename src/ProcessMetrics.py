@@ -1,18 +1,18 @@
 #!/usr/bin/env python # 
 """
- TODO
-Usage: TODO
+ Process data from Raw Device Submission into the Analytics Tables
+Usage: ProcessMetrics.py
 """
-
+import time
 from datetime import datetime
 import pandas as pd
 from sqlalchemy import create_engine, select, delete, Table, MetaData
 import sqlalchemy
 import os
-#from MetricETemp import MetricETemp
 from MetricSample import MetricSample
 from MetricsChargeCycle import MetricsChargeCycle
 from MetricsRainCumlative import MetricsRainCumlative 
+from pip._vendor.urllib3.util.wait import NoWayToWaitForSocketError
 
 
 
@@ -58,6 +58,124 @@ def picoGetChargeV(dic):
     return dic.get("pico", {}).get("charge_volts", None)
 
 
+def purge(engine):
+    #Rain
+    rainCum = MetricsRainCumlative("RainCumlative", engine)
+    rainCum.purge()
+    
+    #ChargeCycle
+    chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
+    chargeCycle.purge()
+    
+    #Temp Sensors
+    picoTemp = MetricSample("ITemp", engine)   
+    senTemp = MetricSample("ETemp", engine)
+    senTemp.purge()
+    picoTemp.purge()
+    
+    #Vain
+    vain = MetricSample("Vain", engine)
+    vain.purge()
+    
+    #Humidity
+    humid = MetricSample("Humidity", engine)
+    humid.purge()
+    
+    #Pressure
+    pressure = MetricSample("Pressure", engine)
+    pressure.purge()
+    
+    #Light and UV
+    uv = MetricSample("UV", engine)
+    lumi = MetricSample("Lumi", engine)
+    uv.purge()
+    lumi.purge()
+      
+    #Battery
+    bat = MetricSample("Battery", engine)
+    bat.purge()
+    
+    #ChargeVolts
+    volts = MetricSample("ChargeV", engine)
+    volts.purge()
+    
+
+def processQueue(engine):
+    
+    totalCount = 1
+    while totalCount != 0:
+        totalCount = 0
+    
+        #Rain
+        rainCum = MetricsRainCumlative("RainCumlative", engine)
+        count = rainCum.processDevice("Test1", "rain")
+        totalCount = totalCount + count
+        
+        #ChargeCycle
+        chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
+        count = chargeCycle.processDevice("Test1", "pico")
+        totalCount = totalCount + count
+          
+        #Temp Sensors
+        picoTemp = MetricSample("ITemp", engine)
+        count = picoTemp.processDevice("Test1", "pico", picoGetTemp)
+        totalCount = totalCount + count
+        
+        rtcTemp = MetricSample("ITemp", engine)
+        count = picoTemp.processDevice("Test1", "rtc", rtcGetTemp)
+        totalCount = totalCount + count
+        
+        ahtTemp = MetricSample("ETemp", engine)
+        count = ahtTemp.processDevice("Test1", "aht10", ahtGetTemp)
+        totalCount = totalCount + count
+        
+        senTemp = MetricSample("ETemp", engine)
+        count = senTemp.processDevice("Test1", "sen0500", senGetTemp)
+        totalCount = totalCount + count
+        
+        #Vain
+        vain = MetricSample("Vain", engine)
+        count = vain.processDevice("Test1", "vain", getVain)
+        totalCount = totalCount + count
+        
+        #Humidity
+        humid = MetricSample("Humidity", engine)
+        count = humid.processDevice("Test1", "sen0500", senGetHumi)
+        totalCount = totalCount + count
+        count = humid.processDevice("Test1", "aht10", ahtGetHumi)
+        totalCount = totalCount + count
+        
+        #Pressure
+        pressure = MetricSample("Pressure", engine)
+        count = pressure.processDevice("Test1", "sen0500", senGetPressure)
+        totalCount = totalCount + count
+        
+        
+        #Light and UV
+        uv = MetricSample("UV", engine)
+        count = uv.processDevice("Test1", "sen0500", senGetUv)
+        totalCount = totalCount + count
+        
+        lumi = MetricSample("Lumi", engine)
+        count = lumi.processDevice("Test1", "sen0500", senGetLumi)
+        totalCount = totalCount + count  
+        
+        #Battery
+        bat = MetricSample("Battery", engine)
+        count = bat.processDevice("Test1", "pico", picoGetBat)
+        totalCount = totalCount + count
+        count = bat.processDevice("Test1", "rtc", rtcGetBat)
+        totalCount = totalCount + count
+        
+        #ChargeVolts
+        volts = MetricSample("ChargeV", engine)
+        count = volts.processDevice("Test1", "pico", picoGetChargeV)
+        totalCount = totalCount + count
+        
+        print("Processed %d"%totalCount)
+
+
+
 if __name__ == "__main__":
    
     #setup DB connection 
@@ -69,117 +187,17 @@ if __name__ == "__main__":
     connectString = "mysql+mysqlconnector://%s:%s@%s:%s/%s"%(dbUser, dbPasswd, dbHost, dbPort, dbSchema)
     engine = create_engine(connectString)
     
-    #mTemp = MetricETemp(engine)
-    #count = 10
-    #while count > 0:
-    #    print(mTemp.mostRecentTS("Test1"))
-    #    count = mTemp.processDevice("Test1")
-    #    print("Processed %d"%count)
+    last = pd.Timestamp.utcnow()
+    while True:
+        processQueue(engine)
+        time.sleep(30)
+        now = pd.Timestamp.utcnow()
+        if (last.day != now.day):
+            last = now
+            purge(engine)
+        
+        
     
-    #mTemp.purge()
-    
-    #Rain
-    rainCum = MetricsRainCumlative("RainCumlative", engine)
-    print(rainCum.mostRecentTS("Test1", "rain"))
-    count = rainCum.processDevice("Test1", "rain")
-    print("Rain Cum Processed %d"%count)
-    rainCum.purge()
-    
-    #ChargeCycle
-    chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
-    print(chargeCycle.mostRecentTS("Test1", "pico"))
-    count = chargeCycle.processDevice("Test1", "pico")
-    print("chargeCycle Processed %d"%count)
-    chargeCycle.purge()
-    
-    
-    #Temp Sensors
-    picoTemp = MetricSample("ITemp", engine)
-    print(picoTemp.mostRecentTS("Test1", "pico"))
-    count = picoTemp.processDevice("Test1", "pico", picoGetTemp)
-    print("picoTemp Processed %d"%count)
-    
-    rtcTemp = MetricSample("ITemp", engine)
-    print(rtcTemp.mostRecentTS("Test1", "rtc"))
-    count = picoTemp.processDevice("Test1", "rtc", rtcGetTemp)
-    print("rtcTemp Processed %d"%count)
-    
-    ahtTemp = MetricSample("ETemp", engine)
-    print(ahtTemp.mostRecentTS("Test1", "aht10"))
-    count = ahtTemp.processDevice("Test1", "aht10", ahtGetTemp)
-    print("ahtTemp Processed %d"%count)
-    
-    senTemp = MetricSample("ETemp", engine)
-    print(senTemp.mostRecentTS("Test1", "sen0500"))
-    count = senTemp.processDevice("Test1", "sen0500", senGetTemp)
-    print("senTemp Processed %d"%count)
-    
-    senTemp.purge()
-    picoTemp.purge()
-    
-    #Vain
-    vain = MetricSample("Vain", engine)
-    print(vain.mostRecentTS("Test1", "vain"))
-    count = vain.processDevice("Test1", "vain", getVain)
-    print("vain Processed %d"%count)
-    vain.purge()
-    
-    #Humidity
-    humid = MetricSample("Humidity", engine)
-    print(humid.mostRecentTS("Test1", "sen0500"))
-    count = humid.processDevice("Test1", "sen0500", senGetHumi)
-    print("humid sen0500 Processed %d"%count)
-    
-    print(humid.mostRecentTS("Test1", "aht10"))
-    count = humid.processDevice("Test1", "aht10", ahtGetHumi)
-    print("humid aht10 Processed %d"%count)
-    
-    humid.purge()
-    
-    
-    #Pressure
-    pressure = MetricSample("Pressure", engine)
-    print(pressure.mostRecentTS("Test1", "sen0500"))
-    count = pressure.processDevice("Test1", "sen0500", senGetPressure)
-    print("pressure sen0500 Processed %d"%count)
-    
-    pressure.purge()
-    
-    
-    #Light and UV
-    uv = MetricSample("UV", engine)
-    print(uv.mostRecentTS("Test1", "sen0500"))
-    count = uv.processDevice("Test1", "sen0500", senGetUv)
-    print("UV sen0500 Processed %d"%count)
-    
-    lumi = MetricSample("Lumi", engine)
-    print(lumi.mostRecentTS("Test1", "sen0500"))
-    count = lumi.processDevice("Test1", "sen0500", senGetLumi)
-    print("Lumi sen0500 Processed %d"%count)
-    
-    uv.purge()
-    lumi.purge()
-    
-    
-    #Battery
-    bat = MetricSample("Battery", engine)
-    print(bat.mostRecentTS("Test1", "pico"))
-    count = bat.processDevice("Test1", "pico", picoGetBat)
-    print("Bat Pico Processed %d"%count)
-    
-    print(bat.mostRecentTS("Test1", "rtc"))
-    count = bat.processDevice("Test1", "rtc", rtcGetBat)
-    print("Bat RTC Processed %d"%count)
-    
-    bat.purge()
-    
-    #ChargeVolts
-    volts = MetricSample("ChargeV", engine)
-    print(volts.mostRecentTS("Test1", "pico"))
-    count = volts.processDevice("Test1", "pico", picoGetChargeV)
-    print("Charge Pico Processed %d"%count)
-    
-    volts.purge()
     
     
     
