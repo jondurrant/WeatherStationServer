@@ -3,6 +3,7 @@
  Process data from Raw Device Submission into the Analytics Tables
 Usage: ProcessMetrics.py
 """
+import sys
 import time
 from datetime import datetime
 import pandas as pd
@@ -100,7 +101,7 @@ def purge(engine):
     volts.purge()
     
 
-def processQueue(engine):
+def processQueue(engine, device):
     
     rainCum = MetricsRainCumlative("RainCumlative", engine)
     chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
@@ -119,55 +120,55 @@ def processQueue(engine):
         totalCount = 0
     
         #Rain
-        count = rainCum.processDevice("Test1", "rain")
+        count = rainCum.processDevice(device, "rain")
         totalCount = totalCount + count
         
         #ChargeCycle
-        count = chargeCycle.processDevice("Test1", "pico")
+        count = chargeCycle.processDevice(device, "pico")
         totalCount = totalCount + count
           
         #Temp Sensors
-        count = ITemp.processDevice("Test1", "pico", picoGetTemp)
+        count = ITemp.processDevice(device, "pico", picoGetTemp)
         totalCount = totalCount + count
         
-        count = ITemp.processDevice("Test1", "rtc", rtcGetTemp)
+        count = ITemp.processDevice(device, "rtc", rtcGetTemp)
         totalCount = totalCount + count
         
-        count = ETemp.processDevice("Test1", "aht10", ahtGetTemp)
+        count = ETemp.processDevice(device, "aht10", ahtGetTemp)
         totalCount = totalCount + count
         
-        count = ETemp.processDevice("Test1", "sen0500", senGetTemp)
+        count = ETemp.processDevice(device, "sen0500", senGetTemp)
         totalCount = totalCount + count
         
         #Vain
-        count = vain.processDevice("Test1", "vain", getVain)
+        count = vain.processDevice(device, "vain", getVain)
         totalCount = totalCount + count
         
         #Humidity
-        count = humid.processDevice("Test1", "sen0500", senGetHumi)
+        count = humid.processDevice(device, "sen0500", senGetHumi)
         totalCount = totalCount + count
-        count = humid.processDevice("Test1", "aht10", ahtGetHumi)
+        count = humid.processDevice(device, "aht10", ahtGetHumi)
         totalCount = totalCount + count
         
         #Pressure
-        count = pressure.processDevice("Test1", "sen0500", senGetPressure)
+        count = pressure.processDevice(device, "sen0500", senGetPressure)
         totalCount = totalCount + count    
         
         #Light and UV
-        count = uv.processDevice("Test1", "sen0500", senGetUv)
+        count = uv.processDevice(device, "sen0500", senGetUv)
         totalCount = totalCount + count
         
-        count = lumi.processDevice("Test1", "sen0500", senGetLumi)
+        count = lumi.processDevice(device, "sen0500", senGetLumi)
         totalCount = totalCount + count  
         
         #Battery
-        count = bat.processDevice("Test1", "pico", picoGetBat)
+        count = bat.processDevice(device, "pico", picoGetBat)
         totalCount = totalCount + count
-        count = bat.processDevice("Test1", "rtc", rtcGetBat)
+        count = bat.processDevice(device, "rtc", rtcGetBat)
         totalCount = totalCount + count
         
         #ChargeVolts
-        count = volts.processDevice("Test1", "pico", picoGetChargeV)
+        count = volts.processDevice(device, "pico", picoGetChargeV)
         totalCount = totalCount + count
         
         print("Processed %d"%totalCount)
@@ -185,9 +186,13 @@ if __name__ == "__main__":
     connectString = "mysql+mysqlconnector://%s:%s@%s:%s/%s"%(dbUser, dbPasswd, dbHost, dbPort, dbSchema)
     engine = create_engine(connectString)
     
+    device = "Test1"
+    if len(sys.argv) > 1:
+        device = sys.argv[1]
+    
     last = pd.Timestamp.utcnow()
     while True:
-        processQueue(engine)
+        processQueue(engine, device)
         time.sleep(30)
         now = pd.Timestamp.utcnow()
         if (last.day != now.day):

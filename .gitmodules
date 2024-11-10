@@ -1,0 +1,3 @@
+[submodule "components/IoTDeviceWebServices"]
+	path = components/IoTDeviceWebServices
+	url = https://github.com/jondurrant/IoTDeviceWebServices

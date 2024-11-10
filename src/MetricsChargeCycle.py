@@ -83,29 +83,32 @@ class MetricsChargeCycle(MetricSample):
             j = json.loads(row["Payload"])
             header = j.get("header", {})
             t = header.get("timestamp", {})
-            sampleTS = pd.Timestamp(
-              t.get("year", 2024),
-              t.get("month", 1),
-              t.get("day", 1),
-              t.get("hour", 0),
-              t.get("min", 0),
-              t.get("sec", 0),
-              tz="UTC"
-              )
-            
-            sample = getSample(j)
-            if sample != None:
-                aggReq.append(sampleTS)
-                metricRow = {
-                    "LoadTime":   row["Timestamp"],
-                    "SampleTime": sampleTS,
-                    "Device":     device,
-                    "Sensor":     sensor,
-                    "VBUS_sec":   sample.get("vbus_sec", None),
-                    "VSYS_sec":   sample.get("vsys_sec", None)
-                    }
-                newRow = pd.DataFrame([metricRow])
-                metricDF = pd.concat([metricDF, newRow])
+            try:
+                sampleTS = pd.Timestamp(
+                  t.get("year", 2024),
+                  t.get("month", 1),
+                  t.get("day", 1),
+                  t.get("hour", 0),
+                  t.get("min", 0),
+                  t.get("sec", 0),
+                  tz="UTC"
+                  )
+                
+                sample = getSample(j)
+                if sample != None:
+                    aggReq.append(sampleTS)
+                    metricRow = {
+                        "LoadTime":   row["Timestamp"],
+                        "SampleTime": sampleTS,
+                        "Device":     device,
+                        "Sensor":     sensor,
+                        "VBUS_sec":   sample.get("vbus_sec", None),
+                        "VSYS_sec":   sample.get("vsys_sec", None)
+                        }
+                    newRow = pd.DataFrame([metricRow])
+                    metricDF = pd.concat([metricDF, newRow])
+            except:
+                print("Skipping invalid record %s"%header)
          
         metricDF.to_sql(self.sampleTable["name"], con=self.dbEng, if_exists='append', index=False)
         conn.close()
