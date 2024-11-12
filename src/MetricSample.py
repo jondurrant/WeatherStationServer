@@ -256,3 +256,44 @@ class MetricSample:
         #print(todoDf)
         
         return None
+    
+    def current(self, device, sensor):
+        stmt = select(
+            self.sampleTable["table"],
+            self.sampleTable["table"].c.Sensor,
+            self.sampleTable["table"].c.Sample,
+            self.sampleTable["table"].c.Min,
+            self.sampleTable["table"].c.Max,
+          ).where(
+              self.sampleTable["table"].c.Device == device
+          ).where(
+              self.sampleTable["table"].c.Sensor == sensor
+          ).order_by(
+              desc(self.sampleTable["table"].c.LoadTime)
+          ).limit(1)
+        conn = self.dbEng.connect()
+        df = pd.read_sql(stmt, conn)
+        return df
+        
+    def hourly(self, device, sensor, startTS, endTS):
+        
+        stmt = select(
+            self.hourTable["table"],
+            self.hourTable["table"].c.Sensor,
+            self.hourTable["table"].c.Sample,
+            self.hourTable["table"].c.Min,
+            self.hourTable["table"].c.Max,
+          ).where(
+              self.hourTable["table"].c.Device == device
+          ).where(
+              self.hourTable["table"].c.Sensor == sensor
+          ).where(
+              self.hourTable["table"].c.SampleTime > startTS
+          ).where(
+              self.hourTable["table"].c.SampleTime < endTS
+          ).order_by(
+              self.hourTable["table"].c.SampleTime
+          )
+        conn = self.dbEng.connect()
+        df = pd.read_sql(stmt, conn)
+        return df

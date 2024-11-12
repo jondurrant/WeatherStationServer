@@ -13,9 +13,7 @@ import os
 from MetricSample import MetricSample
 from MetricsChargeCycle import MetricsChargeCycle
 from MetricsRainCumlative import MetricsRainCumlative 
-from pip._vendor.urllib3.util.wait import NoWayToWaitForSocketError
-
-
+from DevicesStatus import DevicesStatus
 
 
 def picoGetTemp(dic):
@@ -46,7 +44,7 @@ def senGetUv(dic):
     return dic.get("sen0500", {}).get("uv", None)
 
 def senGetLumi(dic):
-    return dic.get("sen0500", {}).get("hPa", None)
+    return dic.get("sen0500", {}).get("lumi", None)
 
 
 def rtcGetBat(dic):
@@ -171,7 +169,7 @@ def processQueue(engine, device):
         count = volts.processDevice(device, "pico", picoGetChargeV)
         totalCount = totalCount + count
         
-        print("Processed %d"%totalCount)
+        print("Processed %s %d"%(device, totalCount))
 
 
 
@@ -186,18 +184,25 @@ if __name__ == "__main__":
     connectString = "mysql+mysqlconnector://%s:%s@%s:%s/%s"%(dbUser, dbPasswd, dbHost, dbPort, dbSchema)
     engine = create_engine(connectString)
     
-    device = "Test1"
     if len(sys.argv) > 1:
-        device = sys.argv[1]
+        devices = [sys.argv[1]]
+        devicesMgt = None
+    else:
+        devicesMgt = DevicesStatus(engine)
+        devices = devicesMgt.getWeatherStations()
     
     last = pd.Timestamp.utcnow()
     while True:
-        processQueue(engine, device)
+        for device in devices:
+            processQueue(engine, device)
         time.sleep(30)
         now = pd.Timestamp.utcnow()
         if (last.day != now.day):
             last = now
             purge(engine)
+        if (devicesMgt != None):
+            devices = devicesMgt.getWeatherStations()
+            
         
         
     
