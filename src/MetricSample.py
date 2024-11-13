@@ -257,7 +257,9 @@ class MetricSample:
         
         return None
     
-    def current(self, device, sensor):
+    def current(self, device, sensor, ts=None):
+        if ts == None:
+            ts = pd.Timestamp.utcnow()
         stmt = select(
             self.sampleTable["table"],
             self.sampleTable["table"].c.Sensor,
@@ -268,6 +270,8 @@ class MetricSample:
               self.sampleTable["table"].c.Device == device
           ).where(
               self.sampleTable["table"].c.Sensor == sensor
+          ). where(
+              self.sampleTable["table"].c.SampleTime < ts.strftime('%Y-%m-%d %X')
           ).order_by(
               desc(self.sampleTable["table"].c.LoadTime)
           ).limit(1)

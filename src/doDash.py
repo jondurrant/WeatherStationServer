@@ -1,4 +1,4 @@
-from dash import Dash, html,  dash_table, dcc
+from dash import Dash, html,  dash_table, dcc, Output, Input, callback, callback_context
 import dash_daq as daq
 import pandas as pd
 from sqlalchemy import create_engine, select, delete, Table, MetaData
@@ -6,10 +6,57 @@ from DevicesStatus import DevicesStatus
 import os
 from MetricSample import MetricSample
 import plotly.express as px
+import dash_bootstrap_components as dbc
+from DashMetricGroup import  DashMetricGroup
 
-app = Dash()
+from datetime import date, datetime
 
 
+app = Dash(external_stylesheets=[dbc.themes.CYBORG])
+
+
+
+@callback(
+    Output('metric-ETemp-aht10-summary', 'children'),
+    Input('device', 'value'),
+    Input('date-picker', 'date')
+)
+def update_output(dev, dat):
+    global tempGrp
+    
+    ts = pd.Timestamp(dat)
+    tempGrp.updateDate(ts)
+    tempGrp.updateDevice(dev)
+    
+    return tempGrp.getSummary()
+
+@callback(
+    Output('metric-ETemp-aht10-guage', 'value'),
+    Input('device', 'value'),
+    Input('date-picker', 'date')
+)
+def updateTempGauge(dev, dat):
+    global tempGrp
+    
+    ts = pd.Timestamp(dat)
+    tempGrp.updateDate(ts)
+    tempGrp.updateDevice(dev)
+
+    return tempGrp.getCurrentSample()
+
+@callback(
+    Output('metric-ETemp-aht10-spark', 'figure'),
+    Input('device', 'value'),
+    Input('date-picker', 'date')
+)
+def updateTempFigure(dev, dat):
+    global tempGrp
+   
+    ts = pd.Timestamp(dat)
+    tempGrp.updateDate(ts)
+    tempGrp.updateDevice(dev)
+
+    return tempGrp.getSpark()
 
 
 
@@ -28,79 +75,26 @@ if __name__ == '__main__':
     devices = devicesMgt.getWeatherStations()
     
     
-    deviceTemp = MetricSample("ETemp", engine)
-    aht = deviceTemp.current("E6614104032F3F39", "aht10")
-    
-    #end = pd.Timestamp.utcnow() 
+   
     end = pd.Timestamp(2024, 11, 10, 16, 00, 00)
     start = end - pd.Timedelta(days=1) 
-    temp24Hours = deviceTemp.hourly("E6614104032F3F39", "aht10", start, end)
-    print(temp24Hours)
-    spark =  dcc.Graph(figure=px.line(temp24Hours, x='SampleTime', y='Sample'),
-        style={
-            "display": "inline-block",
-            "width": "30%",
-            "valign": "top"
-        })
     
-    them = daq.Thermometer(
-        label='Current',
-        labelPosition='top',
-        value=aht['Sample'].values[0],
-        scale={
-            'start': 0, 
-            'interval': 5,
-            'labelInterval': 2, 
-        },
-        min = -10,
-        max = 35,
-        style={
-            "display": "inline-block",
-            "width": "10%"
-        }
-        )
-    themMin = daq.Thermometer(
-        label='Min',
-        labelPosition='top',
-        value=aht['Min'].values[0],
-        scale={
-            'start': 0, 
-            'interval': 5,
-            'labelInterval': 2, 
-        },
-        min = -10,
-        max = 35,
-        style={
-            "display": "inline-block",
-            "width": "10%"
-        }
-        )
-    themMax = daq.Thermometer(
-        label='Max',
-        labelPosition='top',
-        value=aht['Max'].values[0],
-        scale={
-            'start': 0, 
-            'interval': 5,
-            'labelInterval': 2, 
-        },
-        min = -10,
-        max = 35,
-        style={
-            "display": "inline-block",
-            "width": "10%"
-        }
-        )
-
     
+    
+    global tempGrp
+    tempGrp = DashMetricGroup("E6614104032F3F39", "ETemp", "aht10", engine)
+    
+    datePic = dcc.DatePickerSingle(
+        id='date-picker',
+        min_date_allowed=date(2024, 1, 1),
+        date=datetime.now()
+    )
     
     app.layout = [
-        html.Div(children='Device Selection'),
-        dcc.Dropdown(devices, devices[0], id='device'),
-        them,
-        themMin,
-        themMax,
-        spark,
+        html.Div(children='Device Selection', id='dd-output-container'),
+        dcc.Dropdown(devices, devices[0], id='device', style={"width": "200px"}),
+        datePic,
+        tempGrp.getGroup("Temperature", end),
         html.Div(children='My First App with Data'),
         dash_table.DataTable(
             data=df.to_dict('records'), 
