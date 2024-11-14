@@ -31,6 +31,9 @@ def rtcGetTemp(dic):
 def getVain(dic):
     return dic.get("vain", None)
 
+def getAnem(dic):
+    return dic.get("anem", {}).get("kmph", None)
+
 def ahtGetHumi(dic):
     return dic.get("aht10", {}).get("humidity", None)
 
@@ -56,11 +59,16 @@ def picoGetBat(dic):
 def picoGetChargeV(dic):
     return dic.get("pico", {}).get("charge_volts", None)
 
+def rainGetMMPS(dic):
+    return dic.get("rain", {}).get("mmps", None)
+
 
 def purge(engine):
     #Rain
     rainCum = MetricsRainCumlative("RainCumlative", engine)
     rainCum.purge()
+    rainMMPS = MetricSample("Rain", engine)
+    rainMMPS.purge()
     
     #ChargeCycle
     chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
@@ -102,10 +110,12 @@ def purge(engine):
 def processQueue(engine, device):
     
     rainCum = MetricsRainCumlative("RainCumlative", engine)
+    rainMMPS = MetricSample("Rain", engine)
     chargeCycle = MetricsChargeCycle("ChargeCycle", engine)
     ITemp = MetricSample("ITemp", engine)
     ETemp = MetricSample("ETemp", engine)
     vain = MetricSample("Vain", engine)
+    anem = MetricSample("Anem", engine)
     humid = MetricSample("Humidity", engine)
     pressure = MetricSample("Pressure", engine)
     uv = MetricSample("UV", engine)
@@ -119,6 +129,8 @@ def processQueue(engine, device):
     
         #Rain
         count = rainCum.processDevice(device, "rain")
+        totalCount = totalCount + count
+        count = rainMMPS.processDevice(device, "rain", rainGetMMPS)
         totalCount = totalCount + count
         
         #ChargeCycle
@@ -140,6 +152,10 @@ def processQueue(engine, device):
         
         #Vain
         count = vain.processDevice(device, "vain", getVain)
+        totalCount = totalCount + count
+        
+        #Anem
+        count = anem.processDevice(device, "anem", getAnem)
         totalCount = totalCount + count
         
         #Humidity

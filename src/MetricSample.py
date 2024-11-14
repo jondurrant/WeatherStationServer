@@ -275,6 +275,7 @@ class MetricSample:
           ).order_by(
               desc(self.sampleTable["table"].c.LoadTime)
           ).limit(1)
+        #print(stmt)
         conn = self.dbEng.connect()
         df = pd.read_sql(stmt, conn)
         return df

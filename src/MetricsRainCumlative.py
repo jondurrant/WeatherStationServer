@@ -182,4 +182,48 @@ class MetricsRainCumlative(MetricSample):
         
         return None
     
+    def current(self, device, sensor, ts=None):
+        if ts == None:
+            ts = pd.Timestamp.utcnow()
+        stmt = select(
+            self.sampleTable["table"],
+            self.sampleTable["table"].c.Sensor,
+            self.sampleTable["table"].c.CumlativeMM,
+            self.sampleTable["table"].c.SinceSec
+          ).where(
+              self.sampleTable["table"].c.Device == device
+          ).where(
+              self.sampleTable["table"].c.Sensor == sensor
+          ). where(
+              self.sampleTable["table"].c.SampleTime < ts.strftime('%Y-%m-%d %X')
+          ).order_by(
+              desc(self.sampleTable["table"].c.LoadTime)
+          ).limit(1)
+        #print(stmt)
+        conn = self.dbEng.connect()
+        df = pd.read_sql(stmt, conn)
+        return df
         
+    def hourly(self, device, sensor, startTS, endTS):
+        
+        stmt = select(
+            self.hourTable["table"],
+            self.hourTable["table"].c.Sensor,
+            self.hourTable["table"].c.CumlativeMM,
+            self.hourTable["table"].c.SinceSec,
+            self.hourTable["table"].c.MaxSec,
+            self.hourTable["table"].c.MinSec,
+          ).where(
+              self.hourTable["table"].c.Device == device
+          ).where(
+              self.hourTable["table"].c.Sensor == sensor
+          ).where(
+              self.hourTable["table"].c.SampleTime > startTS
+          ).where(
+              self.hourTable["table"].c.SampleTime < endTS
+          ).order_by(
+              self.hourTable["table"].c.SampleTime
+          )
+        conn = self.dbEng.connect()
+        df = pd.read_sql(stmt, conn)
+        return df
