@@ -5,7 +5,8 @@ import dash_bootstrap_components as dbc
 app = Dash(
     __name__, 
     use_pages=True, 
-    external_stylesheets=[dbc.themes.CYBORG])
+    external_stylesheets=[dbc.themes.CYBORG],
+    suppress_callback_exceptions=True)
 
 app.layout = html.Div([
     html.H1('Weather Station'),

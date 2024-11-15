@@ -68,7 +68,7 @@ class DashMetricGroup:
             dbc.Col(self.summary, width=2)
             ]
         )
-        url="/analytics?metric=%s&end=%s"%(self.metric, self.end.strftime('%Y-%m-%d %X'))
+        url="/analytics?device=%s&metric=%s&end=%s"%(self.device,self.metric, self.end.strftime('%Y-%m-%d %X'))
         return html.A(href=url, children=[group])
         
     def setupStyle(self):

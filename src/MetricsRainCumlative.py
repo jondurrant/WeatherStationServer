@@ -207,12 +207,21 @@ class MetricsRainCumlative(MetricSample):
     def hourly(self, device, sensor, startTS, endTS):
         
         stmt = select(
-            self.hourTable["table"],
+            self.hourTable["table"].c.SampleTime,
             self.hourTable["table"].c.Sensor,
             self.hourTable["table"].c.CumlativeMM,
             self.hourTable["table"].c.SinceSec,
             self.hourTable["table"].c.MaxSec,
             self.hourTable["table"].c.MinSec,
+            (func.GREATEST(
+                self.hourTable["table"].c.CumlativeMM -
+                func.lag(
+                    self.hourTable["table"].c.CumlativeMM
+                ).over(
+                    order_by=self.hourTable["table"].c.SampleTime
+                ), 0
+                )
+            ).label('mmPerHour')
           ).where(
               self.hourTable["table"].c.Device == device
           ).where(
