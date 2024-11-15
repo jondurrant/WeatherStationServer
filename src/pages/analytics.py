@@ -94,61 +94,20 @@ def layout(device, metric, end, **_kwargs):
     ])
     return layout
 
-def getTempFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("ETemp", engine)
+def getMetricLineFig(metricName, device, sensor, startTS, endTS):
+    metric = MetricSample(metricName, engine)
     print("%s:%s"%(device, sensor))
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
+    hourly = metric.hourly(device, sensor, startTS, endTS)
         
     fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
     return fig
 
-def getHumidFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("Humidity", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
-        
-    fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
-    return fig
 
-def getPressureFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("Pressure", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
-        
-    fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
-    return fig
-
-def getLumiFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("Lumi", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
-        
-    fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
-    return fig
-
-def getUVFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("UV", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
-        
-    fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
-    return fig
-
-def getAnemFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("Anem", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
-        
-    fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
-    return fig
-
-def getVainFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("Vain", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
+def getMetrixBarFig(metricName, device, sensor, startTS, endTS):
+    metric = MetricSample(metricName, engine)
+    hourly = metric.hourly(device, sensor, startTS, endTS)
         
     fig = px.bar(hourly, x='SampleTime', y=['Sample'])
-    return fig
-
-def getRainFig(device, sensor, startTS, endTS):
-    metricETemp = MetricSample("Rain", engine)
-    hourly = metricETemp.hourly(device, sensor, startTS, endTS)
-        
-    fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])
     return fig
 
 def getRainCumFig(device, sensor, startTS, endTS):
@@ -163,13 +122,13 @@ def getTabs(tab, device, startTS, endTS):
     
     if (tab == "tab-temp"):
         #Temp
-        fig1 = getTempFig(device, "aht10", startTS, endTS)
+        fig1 = getMetricLineFig("ETemp", device, "aht10", startTS, endTS)
         temp1Graph = dcc.Graph(
                 figure=fig1,
                 style={},
                 id="analytics-temp1"
                 )
-        fig2 = getTempFig(device, "sen0500", startTS, endTS)
+        fig2 = getMetricLineFig("ETemp", device, "sen0500", startTS, endTS)
         temp2Graph = dcc.Graph(
                 figure=fig2,
                 style={},
@@ -183,13 +142,13 @@ def getTabs(tab, device, startTS, endTS):
             temp2Graph
             ]
     elif (tab == "tab-humid"):
-        fig1 = getHumidFig(device, "aht10", startTS, endTS)
+        fig1 = getMetricLineFig("Humidity", device, "aht10", startTS, endTS)
         graph1 = dcc.Graph(
                 figure=fig1,
                 style={},
                 id="analytics-humid1"
                 )
-        fig2 = getHumidFig(device, "sen0500", startTS, endTS)
+        fig2 = getMetricLineFig("Humidity", device, "sen0500", startTS, endTS)
         graph2 = dcc.Graph(
                 figure=fig2,
                 style={},
@@ -203,7 +162,7 @@ def getTabs(tab, device, startTS, endTS):
             graph2
             ]
     elif tab == "tab-pressure":
-        fig1 = getPressureFig(device, "sen0500", startTS, endTS)
+        fig1 = getMetricLineFig("Pressure", device, "sen0500", startTS, endTS)
         graph1 = dcc.Graph(
                 figure=fig1,
                 style={},
@@ -215,13 +174,13 @@ def getTabs(tab, device, startTS, endTS):
             graph1
             ]
     elif tab == "tab-light":
-        fig1 = getLumiFig(device, "sen0500", startTS, endTS)
+        fig1 = getMetricLineFig("Lumi", device, "sen0500", startTS, endTS)
         graph1 = dcc.Graph(
                 figure=fig1,
                 style={},
                 id="analytics-light1"
                 )
-        fig2 = getUVFig(device, "sen0500", startTS, endTS)
+        fig2 = getMetricLineFig("UV", device, "sen0500", startTS, endTS)
         graph2 = dcc.Graph(
                 figure=fig2,
                 style={},
@@ -235,13 +194,13 @@ def getTabs(tab, device, startTS, endTS):
             graph2
             ]
     elif tab == "tab-wind":
-        fig1 = getAnemFig(device, "anem", startTS, endTS)
+        fig1 = getMetricLineFig("Anem", device, "anem", startTS, endTS)
         graph1 = dcc.Graph(
                 figure=fig1,
                 style={},
                 id="analytics-wind1"
                 )
-        fig2 = getVainFig(device, "vain", startTS, endTS)
+        fig2 = getMetrixBarFig("Vain", device, "vain", startTS, endTS)
         graph2 = dcc.Graph(
                 figure=fig2,
                 style={},
@@ -255,7 +214,7 @@ def getTabs(tab, device, startTS, endTS):
             graph2
             ]
     elif tab == "tab-rain":
-        fig1 = getRainFig(device, "rain", startTS, endTS)
+        fig1 = getMetricLineFig("Rain", device, "rain", startTS, endTS)
         graph1 = dcc.Graph(
                 figure=fig1,
                 style={},
