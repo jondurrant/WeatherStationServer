@@ -14,18 +14,18 @@ class DashMetricGroupWind(DashMetricGroup):
         self.min = min(low, 0)
         self.max = max(high, 100)
         
-    def getGroup(self, title, ts = None):
+    def getGroup(self, title, device, ts = None):
         
         #Setup start and end date range
-        self.end = ts
-        if self.end == None:
-            self.end = df.Timestamp.utcnow()
-        self.start = self.end - pd.Timedelta(days=1) 
+        end = ts
+        if end == None:
+            end = pd.Timestamp.utcnow()
+        start = end - pd.Timedelta(days=1) 
         
         #Sample Metric
         self.sample = MetricSample(self.metric, self.dbEng)
-        current = self.sample.current(self.device, self.sensor, self.end)
-        hourly = self.sample.hourly(self.device, self.sensor, self.start, self.end)
+        current = self.sample.current(device, self.sensor, end)
+        hourly = self.sample.hourly(device, self.sensor, start, end)
         
         #Vain Metric
         self.vainSample = MetricSample("Vain", self.dbEng)
@@ -33,7 +33,7 @@ class DashMetricGroupWind(DashMetricGroup):
         
         #Spark
         spark =  dcc.Graph(
-            figure=self.getSpark(),
+            figure=self.getSpark(device, end),
             style=self.style,
             id=self.id + "spark"
             )
@@ -50,10 +50,10 @@ class DashMetricGroupWind(DashMetricGroup):
         guage = self.getGuage(title, samValue)
         
         #Summary card
-        summary = self.getSummary()
+        summary = self.getSummary(device, end)
         
         #Vain
-        vain = self.getVain()
+        vain = self.getVain(device, end)
         
         #group
         group = dbc.CardGroup([
@@ -65,8 +65,8 @@ class DashMetricGroupWind(DashMetricGroup):
         )
         return group
     
-    def getVain(self):
-        data = self.vainSample.current(self.device, "vain", self.end)
+    def getVain(self, device, end):
+        data = self.vainSample.current(device, "vain", end)
   
         samValue = 0
         samMax = 0

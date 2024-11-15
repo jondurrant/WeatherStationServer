@@ -35,10 +35,6 @@ def layout(device, metric, end, **_kwargs):
     delta = pd.Timedelta(days=1) 
     startTS = endTS - delta
     
-    print(end)
-    print(endTS)
-    print(startTS)
-    
     startPic = dcc.DatePickerSingle(
         id='start-date',
         min_date_allowed=date(2024, 1, 1),
@@ -96,7 +92,6 @@ def layout(device, metric, end, **_kwargs):
 
 def getMetricLineFig(metricName, device, sensor, startTS, endTS):
     metric = MetricSample(metricName, engine)
-    print("%s:%s"%(device, sensor))
     hourly = metric.hourly(device, sensor, startTS, endTS)
         
     fig = px.line(hourly, x='SampleTime', y=['Sample','Min','Max'])

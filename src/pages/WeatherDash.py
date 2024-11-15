@@ -40,7 +40,7 @@ from datetime import date, datetime
     Output('metric-UV-sen0500-summary', 'children'),
     Output('metric-UV-sen0500-guage', 'value'),
     Output('metric-UV-sen0500-spark', 'figure'),
-    Input('device', 'value'),
+    Input('deviceSel', 'value'),
     Input('date-picker', 'date')
 )
 def updateTempSummary(dev, dat):
@@ -53,52 +53,38 @@ def updateTempSummary(dev, dat):
     global uvGrp
     
     ts = pd.Timestamp(dat)
-    tempGrp.updateDate(ts)
-    tempGrp.updateDevice(dev)
-    humidGrp.updateDate(ts)
-    humidGrp.updateDevice(dev)
-    pressureGrp.updateDate(ts)
-    pressureGrp.updateDevice(dev)
-    windGrp.updateDate(ts)
-    windGrp.updateDevice(dev)
-    rainGrp.updateDate(ts)
-    rainGrp.updateDevice(dev)
-    lumiGrp.updateDate(ts)
-    lumiGrp.updateDevice(dev)
-    uvGrp.updateDate(ts)
-    uvGrp.updateDevice(dev)
-    
-        
+    end = pd.Timestamp(ts.year, ts.month, ts.day, 23, 59, 59)
+   
     return (
-        tempGrp.getSummary(),
-        tempGrp.getCurrentSample(),
-        tempGrp.getSpark(),
+        tempGrp.getSummary(dev, end),
+        tempGrp.getCurrentSample(dev, end),
+        tempGrp.getSpark(dev, end),
         
-        humidGrp.getSummary(),
-        humidGrp.getCurrentSample(),
-        humidGrp.getSpark(),
+        humidGrp.getSummary(dev, end),
+        humidGrp.getCurrentSample(dev, end),
+        humidGrp.getSpark(dev, end),
         
-        pressureGrp.getSummary(),
-        pressureGrp.getCurrentSample(),
-        pressureGrp.getSpark(),
+        pressureGrp.getSummary(dev, end),
+        pressureGrp.getCurrentSample(dev, end),
+        pressureGrp.getSpark(dev, end),
         
-        windGrp.getSummary(),
-        windGrp.getVain(),
-        windGrp.getCurrentSample(),
-        windGrp.getSpark(),
+        windGrp.getSummary(dev, end),
+        windGrp.getVain(dev, end),
+        windGrp.getCurrentSample(dev, end),
+        windGrp.getSpark(dev, end),
         
-        rainGrp.getSummary(),
-        rainGrp.getCumlSummary(),
-        rainGrp.getCurrentSample(),
-        rainGrp.getSpark(),
+        rainGrp.getSummary(dev, end),
+        rainGrp.getCumlSummary(dev, end),
+        rainGrp.getCurrentSample(dev, end),
+        rainGrp.getSpark(dev, end),
         
-        lumiGrp.getSummary(),
-        lumiGrp.getCurrentSample(),
-        lumiGrp.getSpark(),
+        lumiGrp.getSummary(dev, end),
+        lumiGrp.getCurrentSample(dev, end),
+        lumiGrp.getSpark(dev, end),
         
-        uvGrp.getSummary(),
-        uvGrp.getCurrentSample(),
-        uvGrp.getSpark()
+        uvGrp.getSummary(dev, end),
+        uvGrp.getCurrentSample(dev, end),
+        uvGrp.getSpark(dev, end)
         )
 
 
@@ -124,10 +110,12 @@ start = end - pd.Timedelta(days=1)
 
 
 global tempGrp
-tempGrp = DashMetricGroupTemp(devices[0], "ETemp", "aht10", engine)
+tempGrp = DashMetricGroupTemp(
+    "ETemp", 
+    "aht10", 
+    engine)
 global humidGrp
 humidGrp = DashMetricGroup(
-    devices[0], 
     "Humidity", 
     "aht10", 
     engine, 
@@ -137,7 +125,6 @@ humidGrp = DashMetricGroup(
 
 global pressureGrp
 pressureGrp = DashMetricGroup(
-    devices[0], 
     "Pressure", 
     "sen0500", 
     engine, 
@@ -146,8 +133,7 @@ pressureGrp = DashMetricGroup(
     high=1200)
 
 global windGrp
-windGrp = DashMetricGroupWind(
-    devices[0], 
+windGrp = DashMetricGroupWind( 
     "Anem", 
     "anem", 
     engine
@@ -155,7 +141,6 @@ windGrp = DashMetricGroupWind(
 
 global rainGrp
 rainGrp = DashMetricGroupRain(
-    devices[0], 
     "Rain", 
     "rain", 
     engine
@@ -163,7 +148,6 @@ rainGrp = DashMetricGroupRain(
 
 global lumiGrp
 lumiGrp = DashMetricGroup(
-    devices[0], 
     "Lumi", 
     "sen0500", 
     engine, 
@@ -172,8 +156,7 @@ lumiGrp = DashMetricGroup(
     high=25000)
 
 global uvGrp
-uvGrp = DashMetricGroup(
-    devices[0], 
+uvGrp = DashMetricGroup( 
     "UV", 
     "sen0500", 
     engine, 
@@ -187,10 +170,19 @@ datePic = dcc.DatePickerSingle(
     date=datetime.now()
 )
 
+#Device Selection
+deviceSel =  dcc.Dropdown(devices, devices[0], id='deviceSel', style={"width": "200px"}),
+
+controlGrp = dbc.CardGroup([
+    dbc.Col(dbc.Card(dbc.CardBody(html.H4("Device"))), width=1),
+    dbc.Col(dbc.Card(dbc.CardBody(deviceSel)), width=1),
+    dbc.Col(dbc.Card(dbc.CardBody(html.H4("Date"))), width=1),
+    dbc.Col(dbc.Card(dbc.CardBody([datePic])), width=1),
+    ])
+
 layout = [
     html.Div(children='Device Selection', id='dd-output-container'),
-    dcc.Dropdown(devices, devices[0], id='device', style={"width": "200px"}),
-    datePic,
+    controlGrp,
     tempGrp.getGroup("Temperature", end),
     humidGrp.getGroup("Humidity", end),
     pressureGrp.getGroup("Pressure", end),

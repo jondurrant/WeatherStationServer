@@ -17,25 +17,25 @@ class DashMetricGroupRain(DashMetricGroup):
         self.min = min(low, 0)
         self.max = max(high, 10)
         
-    def getGroup(self, title, ts = None):
+    def getGroup(self, title, device, ts = None):
         
         #Setup start and end date range
-        self.end = ts
-        if self.end == None:
-            self.end = df.Timestamp.utcnow()
-        self.start = self.end - pd.Timedelta(days=1) 
+        end = ts
+        if end == None:
+            end = pd.Timestamp.utcnow()
+        start = end - pd.Timedelta(days=1) 
         
         #Sample Metric
         self.sample = MetricSample(self.metric, self.dbEng)
-        current = self.sample.current(self.device, self.sensor, self.end)
-        hourly = self.sample.hourly(self.device, self.sensor, self.start, self.end)
+        current = self.sample.current(device, self.sensor, end)
+        hourly = self.sample.hourly(device, self.sensor, start, end)
         
         #Cumlative Metric
         self.cumlative = MetricsRainCumlative("RainCumlative", self.dbEng)
          
         #Spark
         spark =  dcc.Graph(
-            figure=self.getSpark(),
+            figure=self.getSpark(device, end),
             style=self.style,
             id=self.id + "spark"
             )
@@ -52,9 +52,9 @@ class DashMetricGroupRain(DashMetricGroup):
         guage = self.getGuage(title, samValue)
         
         #Summary card
-        summary = self.getSummary()
+        summary = self.getSummary(device, end)
         
-        cumlSum = self.getCumlSummary()
+        cumlSum = self.getCumlSummary(device, end)
 
         
         
@@ -70,8 +70,9 @@ class DashMetricGroupRain(DashMetricGroup):
     
     
     
-    def getSpark(self):
-        hourly = self.cumlative.hourly(self.device, self.sensor, self.start, self.end)
+    def getSpark(self, device, end):
+        start = end - pd.Timedelta(days=1)
+        hourly = self.cumlative.hourly(device, self.sensor, start, end)
         
         fig = px.bar(hourly, x='SampleTime', y='CumlativeMM')
         fig.update_yaxes(visible=False, showticklabels=False)
@@ -84,8 +85,8 @@ class DashMetricGroupRain(DashMetricGroup):
         return fig
         
            
-    def getCumlSummary(self): 
-        current = self.cumlative.current(self.device, self.sensor, self.end)
+    def getCumlSummary(self, device, end): 
+        current = self.cumlative.current(device, self.sensor, end)
   
         samValue = 0
         samSince = 0

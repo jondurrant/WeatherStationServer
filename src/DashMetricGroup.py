@@ -9,8 +9,7 @@ import plotly.express as px
 import dash_daq as daq
 
 class DashMetricGroup:
-    def __init__(self, device, metric, sensor, dbEng, units="", low=0, high=10):
-        self.device = device
+    def __init__(self, metric, sensor, dbEng, units="", low=0, high=10):
         self.metric = metric
         self.sensor = sensor
         self.dbEng = dbEng
@@ -18,7 +17,6 @@ class DashMetricGroup:
         self.id = "metric-%s-%s-"%(metric, sensor)
         self.setUnits(units)
         self.setRange(low, high)
-        self.cache={}
         
     def setUnits(self, units):
         self.units = units
@@ -27,22 +25,22 @@ class DashMetricGroup:
         self.min = low
         self.max = high
         
-    def getGroup(self, title, ts = None):
+    def getGroup(self, title, device, ts = None):
         
         #Setup start and end date range
-        self.end = ts
-        if self.end == None:
-            self.end = df.Timestamp.utcnow()
-        self.start = self.end - pd.Timedelta(days=1) 
+        end = ts
+        if end == None:
+            end = pd.Timestamp.utcnow()
+        start = end - pd.Timedelta(days=1) 
         
         #Sample Metric
         self.sample = MetricSample(self.metric, self.dbEng)
-        current = self.sample.current(self.device, self.sensor, self.end)
-        hourly = self.sample.hourly(self.device, self.sensor, self.start, self.end)
+        current = self.sample.current(device, self.sensor, end)
+        hourly = self.sample.hourly(device, self.sensor, start, end)
         
         #Spark
         spark =  dcc.Graph(
-            figure=self.getSpark(),
+            figure=self.getSpark(device, end),
             style=self.style,
             id=self.id + "spark"
             )
@@ -59,7 +57,7 @@ class DashMetricGroup:
         self.guage = self.getGuage(title, samValue)
         
         #Summary card
-        self.summary = self.getSummary()
+        self.summary = self.getSummary(device, end)
         
         #group
         group = dbc.CardGroup([
@@ -68,7 +66,7 @@ class DashMetricGroup:
             dbc.Col(self.summary, width=2)
             ]
         )
-        url="/analytics?device=%s&metric=%s&end=%s"%(self.device,self.metric, self.end.strftime('%Y-%m-%d %X'))
+        url="/analytics?device=%s&metric=%s&end=%s"%(device, self.metric, end.strftime('%Y-%m-%d %X'))
         return html.A(href=url, children=[group])
         
     def setupStyle(self):
@@ -77,24 +75,15 @@ class DashMetricGroup:
             "width": "18rem"
         }
         
-    def updateDevice(self, value):
-        if self.device != value:
-            self.device = value
-            self.cache={}
-        
-    def getCurrentSample(self):
-        current = self.cache.get(
-            "current",
-            self.sample.current(self.device, self.sensor, self.end))
+    def getCurrentSample(self, device, end):
+        current = self.sample.current(device, self.sensor, end)
         samValue = 0
         if len(current) > 0:
             samValue = current['Sample'].values[0]
         return samValue
         
-    def getSummary(self):
-        current = self.cache.get(
-            "current",
-            self.sample.current(self.device, self.sensor, self.end))
+    def getSummary(self, device, end):
+        current = self.sample.current(device, self.sensor, end)
   
         samValue = 0
         samMax = 0
@@ -121,11 +110,9 @@ class DashMetricGroup:
         )
         return self.summary
     
-    def getSpark(self):
-        hourly = self.cache.get(
-            "hourly",
-            self.sample.hourly(self.device, self.sensor, self.start, self.end)
-            )
+    def getSpark(self, device, end):
+        start = end - pd.Timedelta(days=1)
+        hourly = self.sample.hourly(device, self.sensor, start, end)
         
         fig = px.line(hourly, x='SampleTime', y='Sample')
         fig.update_yaxes(visible=False, showticklabels=False)
@@ -136,12 +123,6 @@ class DashMetricGroup:
             'paper_bgcolor': 'rgba(20, 0, 0, 0)',
             })
         return fig
-       
-    def updateDate(self, ts):
-        end = pd.Timestamp(ts.year, ts.month, ts.day, 23, 59)
-        self.end = end
-        self.start = self.end - pd.Timedelta(days=1)  
-        self.cache={}
   
         
     def getGuage(self, title, value = 0):
