@@ -74,7 +74,7 @@ class DashMetricGroupRain(DashMetricGroup):
         start = end - pd.Timedelta(days=1)
         hourly = self.cumlative.hourly(device, self.sensor, start, end)
         
-        fig = px.bar(hourly, x='SampleTime', y='CumlativeMM')
+        fig = px.bar(hourly, x='SampleTime', y='mmPerHour')
         fig.update_yaxes(visible=False, showticklabels=False)
         fig.update_xaxes(visible=False, showticklabels=False)
         fig.update_layout(margin=dict(l=2, r=2, t=2, b=2))

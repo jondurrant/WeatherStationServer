@@ -1,4 +1,4 @@
-from dash import Dash, html,  dash_table, dcc, Output, Input, callback, callback_context
+from dash import Dash, html,  dash_table, dcc, Output, Input, callback, callback_context, MATCH
 import dash
 import dash_daq as daq
 import pandas as pd
@@ -17,6 +17,7 @@ from datetime import date, datetime
 
 
 @callback(
+    Output('session', 'data', allow_duplicate=True),
     Output('metric-ETemp-aht10-summary', 'children'),
     Output('metric-ETemp-aht10-guage', 'value'),
     Output('metric-ETemp-aht10-spark', 'figure'),
@@ -41,7 +42,8 @@ from datetime import date, datetime
     Output('metric-UV-sen0500-guage', 'value'),
     Output('metric-UV-sen0500-spark', 'figure'),
     Input('deviceSel', 'value'),
-    Input('date-picker', 'date')
+    Input('date-picker', 'date'),
+    prevent_initial_call=True
 )
 def updateTempSummary(dev, dat):
     global tempGrp
@@ -56,6 +58,7 @@ def updateTempSummary(dev, dat):
     end = pd.Timestamp(ts.year, ts.month, ts.day, 23, 59, 59)
    
     return (
+        {"device": dev, "end": end},
         tempGrp.getSummary(dev, end),
         tempGrp.getCurrentSample(dev, end),
         tempGrp.getSpark(dev, end),

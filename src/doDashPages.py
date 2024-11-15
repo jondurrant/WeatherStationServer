@@ -1,5 +1,5 @@
 import dash
-from dash import Dash, html, dcc
+from dash import Dash, html, dcc, callback, Input, Output, State, MATCH
 import dash_bootstrap_components as dbc
 
 app = Dash(
@@ -9,6 +9,7 @@ app = Dash(
     suppress_callback_exceptions=True)
 
 app.layout = html.Div([
+    dcc.Store(id='session', storage_type='session', data={}),
     html.H1('Weather Station'),
     html.Div([
         html.Div(
@@ -17,6 +18,7 @@ app.layout = html.Div([
     ]),
     dash.page_container
 ])
+
 
 if __name__ == '__main__':
     

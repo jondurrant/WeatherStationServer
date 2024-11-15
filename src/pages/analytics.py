@@ -10,6 +10,7 @@ import os
 from DevicesStatus import DevicesStatus
 from MetricSample import MetricSample
 from MetricsRainCumlative import MetricsRainCumlative
+from _tracemalloc import start
 
 dash.register_page(
     __name__,
@@ -28,9 +29,11 @@ global engine
 engine = create_engine(connectString)
 
 
-
-def layout(device, metric, end, **_kwargs):
-    d = pd.Timestamp(end)
+    
+def layout(): #device, metric, end, **_kwargs):
+    device = "Test1"
+    metric = "foo"
+    d = pd.Timestamp.utcnow() #(end)
     endTS = pd.Timestamp(d.year, d.month, d.day, 23, 59, 59)
     delta = pd.Timedelta(days=1) 
     startTS = endTS - delta
@@ -75,7 +78,7 @@ def layout(device, metric, end, **_kwargs):
         btnGrp
         ])
     
-    layout = html.Div([
+    l = [html.Div([
         html.H1('Weather Station Analytics'),
         controlGrp,
         dcc.Tabs(id="tabs-analytics", value='tab-temp', children=[
@@ -87,8 +90,8 @@ def layout(device, metric, end, **_kwargs):
         dcc.Tab(label='Light', value='tab-light'),
     ]),
     html.Div(id='tabs-content')
-    ])
-    return layout
+    ])]
+    return l
 
 def getMetricLineFig(metricName, device, sensor, startTS, endTS):
     metric = MetricSample(metricName, engine)
@@ -232,26 +235,32 @@ def getTabs(tab, device, startTS, endTS):
     return res
     
 
+
 @callback(
+    Output('session', 'data', allow_duplicate=True),
+    Output('deviceSel', 'value'),
     Output('start-date', 'date'),
+    Output('end-date', 'date'),
     Output('tabs-content', 'children'),
 #    Output('analytics-temp1', 'figure'),
 #    Output('analytics-temp2', 'figure'),
-    Input('tabs-analytics', 'value'),
+    Input('session', 'data'),
     Input('deviceSel', 'value'),
     Input('start-date', 'date'),
     Input('end-date', 'date'),
     Input('btn-day', 'n_clicks'),
     Input('btn-week', 'n_clicks'),
     Input('btn-month', 'n_clicks'),
-    Input('btn-year', 'n_clicks')
+    Input('btn-year', 'n_clicks'),
+    prevent_initial_call=True
 )
-def periodBtns(tab, device, startStr, endStr, btn1, btn2, btn3, btn4):
+def periodBtns(session, device, startStr, endStr, btn1, btn2, btn3, btn4):
     d = pd.Timestamp(endStr)
     end = pd.Timestamp(d.year, d.month, d.day, 23, 59, 59)
     delta = pd.Timedelta(days=0) 
     d = pd.Timestamp(startStr)
     start = pd.Timestamp(d.year, d.month, d.day, 0, 0, 0)
+    
     if "btn-day" == ctx.triggered_id:
         delta = pd.Timedelta(days=1)
         start = end - delta
@@ -263,10 +272,27 @@ def periodBtns(tab, device, startStr, endStr, btn1, btn2, btn3, btn4):
         start = end - delta
     elif "btn-year" == ctx.triggered_id:
         delta = pd.DateOffset(years=1)
-        start = end - delta
+        start = end - delta 
+    elif ("start-date" != ctx.triggered_id) and ("end-date" != ctx.triggered_id):
+        device = session.get("device", device)
+        end = session.get("end", end)
+        start = session.get("start", start)
+        if end <= start :
+            delta = pd.Timedelta(days=1)
+            start = end - delta
+            
+        
+    session["start"] = start
+    session["end"] = end
+    session["device"] = device
+    
+    print("New session %s"%session)
     
     return (
+        session,
+        device,
         start.strftime('%Y-%m-%d %X'),
+        end.strftime('%Y-%m-%d %X'),
         getTabs(tab, device, start, end)
         #getTempFig(device, "aht10", start, end),
         #getTempFig(device, "sen0500", start, end)
